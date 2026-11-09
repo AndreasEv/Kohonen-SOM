@@ -5,7 +5,7 @@ maxIterations 100
 initialLearningRate 0.5
 finalLearningRate 0.01
 initialRadius 10
-finalRadius 1
+finalRadius 0.5
 randomSeed 42
 initMethod sample
 trainFile training.txt

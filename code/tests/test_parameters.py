@@ -48,7 +48,7 @@ class TestReadSampleFile(unittest.TestCase):
         self.assertEqual(p, {
             "gridRows": 20, "gridCols": 20, "numInputs": 16, "maxIterations": 100,
             "initialLearningRate": 0.5, "finalLearningRate": 0.01,
-            "initialRadius": 10.0, "finalRadius": 1.0, "randomSeed": 42, "initMethod": "sample",
+            "initialRadius": 10.0, "finalRadius": 0.5, "randomSeed": 42, "initMethod": "sample",
             "trainFile": "training.txt", "testFile": "test.txt",
         })
         self.assertIsInstance(p["gridRows"], int)

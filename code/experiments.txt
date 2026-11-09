@@ -22,9 +22,9 @@ learning  eta_0.5
 learning  eta_0.1       initialLearningRate 0.1
 
 # Neighbourhood radius (initial and final value)
-radius    radius_10_1
-radius    radius_5_1    initialRadius 5
-radius    radius_10_0.5 finalRadius 0.5
+radius    radius_10_0.5
+radius    radius_10_1   finalRadius 1
+radius    radius_5_0.5  initialRadius 5
 
 # Weight initialization
 init      init_sample

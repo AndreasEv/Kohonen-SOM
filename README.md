@@ -27,6 +27,8 @@ code/
   training.txt     Assignment 2 training set (16000 patterns)
   test.txt         Assignment 2 test set (4000 patterns)
   tests/           unit tests (standard-library unittest)
+README.txt         submission README (language, libraries, commands, plots)
+make_zip.py        builds the Moodle archive EPL442_ex3_<AM>.zip
 ```
 
 ## Run
@@ -41,8 +43,13 @@ and the clustering accuracy on the test set (overall and per letter). Writes
 `results.txt` and `clustering.txt` in the same folder, and the plots
 `plots/error_curve.png`, `plots/letter_map.png` and `plots/letter_accuracy.png`
 (skipped with a message if matplotlib is missing). To redraw the first two
-from the output files only: `python3 plots.py`. With the sample parameters
+from the output files only: `python3 plots.py`. With the shipped parameters
 (20x20, 100 epochs) a run takes about 2.5 minutes.
+
+Baseline (the shipped `parameters.txt`: 20x20, 100 epochs, eta 0.5 -> 0.01,
+radius 10 -> 0.5, sample init, seed 42): final training error 0.2253, testing
+error 0.2346, test clustering accuracy 67.65%. Its `results.txt` and
+`clustering.txt` are committed in `code/`.
 
 ## Experiments
 
@@ -68,3 +75,14 @@ about 20-25 minutes (4 at a time: under 7 minutes).
 cd code
 python3 -m unittest discover -s tests -v
 ```
+
+## Submission zip
+
+```
+python3 make_zip.py 123456 --name "Name Surname"
+```
+
+Run from the repository root after `main.py`, with `report.pdf` next to
+`README.txt`. Writes `EPL442_ex3_123456.zip` with `code/`, `README.txt` and
+`report.pdf`, and fills the name and student ID into the file headers inside
+the zip only.
