@@ -20,6 +20,10 @@ code/
                    and clustering.txt (row, col, letter, patterns, hits)
   plots.py         report plots in plots/: error curve per epoch, letter map
                    of the grid, test accuracy per letter (matplotlib)
+  experiments.py   runs every line of experiments.txt and writes summary
+                   tables to experiments/summary.txt and summary.csv
+  experiments.txt  the comparisons (grid size, learning rate, radius,
+                   initialization) and the repeated runs with other seeds
   training.txt     Assignment 2 training set (16000 patterns)
   test.txt         Assignment 2 test set (4000 patterns)
   tests/           unit tests (standard-library unittest)
@@ -39,6 +43,24 @@ and the clustering accuracy on the test set (overall and per letter). Writes
 (skipped with a message if matplotlib is missing). To redraw the first two
 from the output files only: `python3 plots.py`. With the sample parameters
 (20x20, 100 epochs) a run takes about 2.5 minutes.
+
+## Experiments
+
+```
+cd code
+python3 experiments.py --jobs 4
+```
+
+Each line of `experiments.txt` is one run: `parameters.txt` with only the
+parameters named on that line changed. Every run gets its own folder
+`experiments/<name>/` (its parameters.txt, results.txt, clustering.txt and
+run.txt), and the summary tables (one per group, with mean and standard
+deviation for the seed group) go to `experiments/summary.txt` and
+`experiments/summary.csv`. Runs with the same settings are trained once, and a
+finished run is not trained again on the next call (add `--force` to retrain),
+so adding a line only trains the new run. `--only <group>` trains one group.
+`--jobs N` trains N runs in parallel; one at a time, all 11 distinct runs take
+about 20-25 minutes (4 at a time: under 7 minutes).
 
 ## Tests
 

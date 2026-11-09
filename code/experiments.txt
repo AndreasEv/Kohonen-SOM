@@ -1,0 +1,38 @@
+# Experiments for the report, run with:  python3 experiments.py
+#
+# One experiment per line:  group  name  [parameter value ...]
+#   group      the summary table the run goes into
+#   name       unique name; its files go to experiments/<name>/
+#   parameter value pairs override parameters.txt for this run only.
+#              Everything not listed comes from parameters.txt (the baseline).
+# A line with no overrides is the baseline itself. Runs with exactly the
+# same settings are trained only once and the result is shared.
+
+# The baseline: parameters.txt unchanged (the runs below that equal it share
+# this result)
+baseline  baseline
+
+# Grid size (at least two sizes)
+grid      grid_10x10    gridRows 10 gridCols 10
+grid      grid_15x15    gridRows 15 gridCols 15
+grid      grid_20x20
+
+# Learning rate (initial value)
+learning  eta_0.5
+learning  eta_0.1       initialLearningRate 0.1
+
+# Neighbourhood radius (initial and final value)
+radius    radius_10_1
+radius    radius_5_1    initialRadius 5
+radius    radius_10_0.5 finalRadius 0.5
+
+# Weight initialization
+init      init_sample
+init      init_random   initMethod random
+
+# Stability: the baseline with different seeds
+seeds     seed_42
+seeds     seed_1        randomSeed 1
+seeds     seed_2        randomSeed 2
+seeds     seed_3        randomSeed 3
+seeds     seed_4        randomSeed 4
