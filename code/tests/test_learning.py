@@ -162,11 +162,9 @@ class TestUpdate(unittest.TestCase):
 
 
 def train(som, x, params):
-    """Small training loop used only by these tests (the real one comes later)."""
+    """Train for maxIterations epochs with the real epoch step (no error tracking)."""
     for epoch in range(params["maxIterations"]):
-        eta, sigma = schedule(params, epoch)
-        for i in som.rng.permutation(len(x)):
-            som.train_step(x[i], eta, sigma)
+        som.train_epoch(x, *schedule(params, epoch))
 
 
 class TestSyntheticOrdering(unittest.TestCase):

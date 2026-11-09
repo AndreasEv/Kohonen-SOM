@@ -46,6 +46,15 @@ so epoch 0 uses the initial value and the last epoch exactly the final one.
 Exponential decay spends most epochs on small values: the map orders itself
 quickly in the first epochs with a wide neighbourhood, then has many epochs
 of small, local corrections (fine tuning).
+
+Epoch. One epoch presents every training pattern exactly once, in a new
+random order (a permutation drawn from the seeded generator), with the eta
+and sigma of that epoch.
+
+Quantization error. How well the map represents a set of N patterns: the
+mean Euclidean distance of every pattern to the weights of its winner,
+    QE = (1/N) * sum_p || x_p - w_c(p) ||
+It is computed separately on the training set and on the test set.
 """
 
 import numpy as np
@@ -146,6 +155,16 @@ def find_winners(weights, x):
     return indices, distances
 
 
+def quantization_error(weights, x):
+    """Quantization error of the patterns x (patterns, inputs) on the map.
+
+        QE = (1/N) * sum_p || x_p - w_c(p) ||
+
+    the mean Euclidean distance of each pattern to its winning neuron.
+    """
+    return float(np.mean(find_winners(weights, x)[1]))
+
+
 def grid_sq_distances(positions, winner):
     """Squared grid distance ||r_j - r_c||^2 from neuron `winner` to every neuron.
 
@@ -222,8 +241,8 @@ class SOM:
       num_inputs   length of every input and weight vector
       positions    (neurons, 2) grid position (row, col) of each neuron
       weights      (neurons, num_inputs) weight vector of each neuron
-      rng          the seeded random generator, kept for later random steps
-                   (e.g. shuffling the patterns every epoch)
+      rng          the seeded random generator; also shuffles the patterns
+                   every epoch
     """
 
     def __init__(self, rows, cols, num_inputs, seed, init_method="random", x_train=None):
@@ -279,3 +298,17 @@ class SOM:
         j, d = find_winner(self.weights, x)
         update_weights(self.weights, self.positions, x, j, learning_rate, radius)
         return j, d
+
+    def train_epoch(self, x, learning_rate, radius):
+        """One epoch: every row of x once, in a random order, through train_step.
+
+        The order is a fresh permutation from the map's seeded generator, so
+        it changes every epoch but the whole run can be repeated exactly.
+        """
+        x = np.asarray(x, dtype=float)
+        for i in self.rng.permutation(len(x)):
+            self.train_step(x[i], learning_rate, radius)
+
+    def quantization_error(self, x):
+        """Mean distance of the rows of x to their winning neurons (see quantization_error)."""
+        return quantization_error(self.weights, x)
