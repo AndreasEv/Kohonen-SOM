@@ -8,7 +8,8 @@ runs one SOM training with the settings found there:
   map -> train for maxIterations epochs -> write results.txt -> label every
   neuron with the majority letter of its training patterns and write
   clustering.txt -> print the final training / testing error and the
-  clustering accuracy on the test set (overall and per letter).
+  clustering accuracy on the test set (overall and per letter) -> save the
+  plots for the report in plots/ (see plots.py).
 """
 
 import os
@@ -54,6 +55,18 @@ def print_summary(history, labelling, acc):
         print("  " + "   ".join(items[start:start + 4]))
 
 
+def print_plots(acc, folder="."):
+    """Save the report plots; a missing matplotlib only skips them."""
+    try:
+        import plots
+        written = plots.save_plots(folder, acc)
+    except ImportError:
+        print("matplotlib is not installed, so no plots were drawn (pip install matplotlib).")
+        return []
+    print("Plots saved: " + ", ".join(written))
+    return written
+
+
 def run(folder=".", verbose=True):
     """Train with folder/parameters.txt; write folder/results.txt and folder/clustering.txt.
 
@@ -96,6 +109,7 @@ def main():
     print(f"\nFinished in {time.time() - start:.1f} s. Per-epoch errors saved to {RESULTS_FILE}, "
           f"neuron letters to {CLUSTERING_FILE}.")
     print_summary(history, labelling, acc)
+    print_plots(acc)
     return 0
 
 
