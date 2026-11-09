@@ -6,5 +6,6 @@ initialLearningRate 0.5
 finalLearningRate 0.01
 initialRadius 10
 randomSeed 42
+initMethod sample
 trainFile training.txt
 testFile test.txt

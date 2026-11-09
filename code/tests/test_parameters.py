@@ -23,6 +23,7 @@ initialLearningRate 0.5
 finalLearningRate 0.01
 initialRadius 10
 randomSeed 42
+initMethod sample
 trainFile training.txt
 testFile test.txt
 """
@@ -46,7 +47,7 @@ class TestReadSampleFile(unittest.TestCase):
         self.assertEqual(p, {
             "gridRows": 20, "gridCols": 20, "numInputs": 16, "maxIterations": 100,
             "initialLearningRate": 0.5, "finalLearningRate": 0.01,
-            "initialRadius": 10.0, "randomSeed": 42,
+            "initialRadius": 10.0, "randomSeed": 42, "initMethod": "sample",
             "trainFile": "training.txt", "testFile": "test.txt",
         })
         self.assertIsInstance(p["gridRows"], int)
@@ -77,7 +78,7 @@ class TestFormat(unittest.TestCase):
 
     def test_missing_value(self):
         lines = without("gridRows") + ["gridRows"]
-        with self.assertRaisesRegex(ParameterError, "line 10: expected 'name value'"):
+        with self.assertRaisesRegex(ParameterError, "line 11: expected 'name value'"):
             parse_parameters(lines)
 
     def test_too_many_values(self):
@@ -89,7 +90,7 @@ class TestFormat(unittest.TestCase):
             parse_parameters(VALID.splitlines() + ["gridrows 5"])
 
     def test_duplicate(self):
-        with self.assertRaisesRegex(ParameterError, "line 11: gridRows is given more than once"):
+        with self.assertRaisesRegex(ParameterError, "line 12: gridRows is given more than once"):
             parse_parameters(VALID.splitlines() + ["gridRows 5"])
 
     def test_missing_parameters_are_all_listed(self):
@@ -143,6 +144,14 @@ class TestValues(unittest.TestCase):
         for value in ("0", "-1", "big"):
             with self.subTest(value=value):
                 self.assert_rejected("initialRadius", value)
+
+    def test_init_method(self):
+        for value in ("random", "sample"):
+            with self.subTest(value=value):
+                self.assertEqual(parse_parameters(with_line("initMethod", value))["initMethod"], value)
+        for value in ("Random", "pca", "1"):
+            with self.subTest(value=value):
+                self.assert_rejected("initMethod", value)
 
     def test_error_names_the_line(self):
         with self.assertRaisesRegex(ParameterError, "parameters.txt, line 1: gridRows"):

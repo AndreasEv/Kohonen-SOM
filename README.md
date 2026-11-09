@@ -11,6 +11,7 @@ code/
   main.py          entry point
   parameters.py    reads and validates parameters.txt
   data.py          loads training.txt / test.txt, min-max normalization to [0, 1]
+  som.py           SOM grid, weight initialization, winner (BMU) search
   training.txt     Assignment 2 training set (16000 patterns)
   test.txt         Assignment 2 test set (4000 patterns)
   tests/           unit tests (standard-library unittest)

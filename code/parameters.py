@@ -46,6 +46,8 @@ SCHEMA = {
     "finalLearningRate":   (_parse_float, lambda v: 0 < v <= 1, "a number in (0, 1]"),
     "initialRadius":       (_parse_float, lambda v: v > 0, "a number > 0"),
     "randomSeed":          (_parse_int,   lambda v: v >= 0, "an integer >= 0"),
+    "initMethod":          (_parse_str,   lambda v: v in ("random", "sample"),
+                            "'random' or 'sample'"),
     "trainFile":           (_parse_str,   lambda v: len(v) > 0, "a file name"),
     "testFile":            (_parse_str,   lambda v: len(v) > 0, "a file name"),
 }
