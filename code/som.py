@@ -27,8 +27,25 @@ Euclidean distance
     d_j = || x - w_j || = sqrt( sum_i (x_i - w_ji)^2 ).
 If two neurons are equally close, the one with the lower index wins.
 
-The neighbourhood function, the weight update and the decay of the learning
-rate and radius are added in a later step.
+Neighbourhood. Neurons near the winner c on the grid learn too, weighted by
+a Gaussian of their grid distance to c:
+    h_cj(t) = exp( - ||r_j - r_c||^2 / (2 * sigma(t)^2) )
+where r_j is the (row, col) position of neuron j and sigma(t) is the radius.
+h is 1 for the winner, about 0.61 at distance sigma, 0.14 at 2*sigma and
+0.01 at 3*sigma, so it fades smoothly instead of cutting off at a border.
+
+Weight update. For one input x with winner c, every neuron moves towards x:
+    w_j(t+1) = w_j(t) + eta(t) * h_cj(t) * ( x - w_j(t) )
+
+Decay. The learning rate eta and the radius sigma shrink exponentially from
+their initial to their final value over the epochs t = 0, 1, ..., T-1
+(T = maxIterations):
+    eta(t)   = eta_0   * (eta_T   / eta_0  ) ^ ( t / (T-1) )
+    sigma(t) = sigma_0 * (sigma_T / sigma_0) ^ ( t / (T-1) )
+so epoch 0 uses the initial value and the last epoch exactly the final one.
+Exponential decay spends most epochs on small values: the map orders itself
+quickly in the first epochs with a wide neighbourhood, then has many epochs
+of small, local corrections (fine tuning).
 """
 
 import numpy as np
@@ -129,6 +146,74 @@ def find_winners(weights, x):
     return indices, distances
 
 
+def grid_sq_distances(positions, winner):
+    """Squared grid distance ||r_j - r_c||^2 from neuron `winner` to every neuron.
+
+    positions is the (neurons, 2) array from grid_positions. Returns an array
+    of length `neurons`; the winner itself gets 0.
+    """
+    diff = positions - positions[int(winner)]
+    return np.sum(diff * diff, axis=1).astype(float)
+
+
+def gaussian_neighbourhood(positions, winner, radius):
+    """Gaussian neighbourhood h_cj of every neuron j around the winner c.
+
+        h_cj = exp( - ||r_j - r_c||^2 / (2 * radius^2) )
+
+    Uses the distance on the grid (row, col), not the distance of the
+    weights. Returns an array of length `neurons` with values in (0, 1];
+    the winner gets exactly 1.
+    """
+    if radius <= 0:
+        raise ValueError(f"radius must be > 0, got {radius}")
+    return np.exp(-grid_sq_distances(positions, winner) / (2.0 * radius * radius))
+
+
+def exponential_decay(initial, final, epoch, num_epochs):
+    """Value of a parameter at `epoch` when it decays exponentially.
+
+        value(t) = initial * (final / initial) ^ ( t / (T-1) ),  t = 0 .. T-1
+
+    Epoch 0 gives `initial`, epoch T-1 gives `final`, and every epoch in
+    between multiplies by the same factor. With a single epoch (T = 1) the
+    initial value is used. Used for both the learning rate and the radius.
+    """
+    if initial <= 0 or final <= 0:
+        raise ValueError("initial and final values must be > 0")
+    if num_epochs < 1 or not 0 <= epoch < num_epochs:
+        raise ValueError(f"epoch must be in 0..{num_epochs - 1}, got {epoch}")
+    if num_epochs == 1:
+        return float(initial)
+    return float(initial * (final / initial) ** (epoch / (num_epochs - 1)))
+
+
+def schedule(params, epoch):
+    """(learning rate, radius) to use during `epoch`, from the parameters.
+
+    Both decay exponentially from initial... to final... over maxIterations
+    epochs (see exponential_decay).
+    """
+    t, total = epoch, params["maxIterations"]
+    eta = exponential_decay(params["initialLearningRate"], params["finalLearningRate"], t, total)
+    sigma = exponential_decay(params["initialRadius"], params["finalRadius"], t, total)
+    return eta, sigma
+
+
+def update_weights(weights, positions, x, winner, learning_rate, radius):
+    """Kohonen update for one input x with winning neuron `winner` (in place).
+
+        w_j <- w_j + eta * h_cj * (x - w_j)     for every neuron j
+
+    with h_cj the Gaussian neighbourhood. `weights` is changed in place and
+    also returned. The winner moves the most (h = 1); neurons far away on
+    the grid hardly move.
+    """
+    h = gaussian_neighbourhood(positions, winner, radius)            # (neurons,)
+    weights += learning_rate * h[:, None] * (np.asarray(x, dtype=float) - weights)
+    return weights
+
+
 class SOM:
     """A Kohonen map on a rows x cols square grid.
 
@@ -181,3 +266,16 @@ class SOM:
     def winners(self, x):
         """(indices, distances) of the winning neurons for every row of x."""
         return find_winners(self.weights, x)
+
+    def neighbourhood(self, winner, radius):
+        """Gaussian neighbourhood h of every neuron around `winner`."""
+        return gaussian_neighbourhood(self.positions, winner, radius)
+
+    def train_step(self, x, learning_rate, radius):
+        """One learning step for one pattern x: find the winner, update the weights.
+
+        Returns (winner index, distance before the update).
+        """
+        j, d = find_winner(self.weights, x)
+        update_weights(self.weights, self.positions, x, j, learning_rate, radius)
+        return j, d

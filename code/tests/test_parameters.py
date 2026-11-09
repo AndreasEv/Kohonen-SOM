@@ -22,6 +22,7 @@ maxIterations 100
 initialLearningRate 0.5
 finalLearningRate 0.01
 initialRadius 10
+finalRadius 1
 randomSeed 42
 initMethod sample
 trainFile training.txt
@@ -47,7 +48,7 @@ class TestReadSampleFile(unittest.TestCase):
         self.assertEqual(p, {
             "gridRows": 20, "gridCols": 20, "numInputs": 16, "maxIterations": 100,
             "initialLearningRate": 0.5, "finalLearningRate": 0.01,
-            "initialRadius": 10.0, "randomSeed": 42, "initMethod": "sample",
+            "initialRadius": 10.0, "finalRadius": 1.0, "randomSeed": 42, "initMethod": "sample",
             "trainFile": "training.txt", "testFile": "test.txt",
         })
         self.assertIsInstance(p["gridRows"], int)
@@ -78,7 +79,7 @@ class TestFormat(unittest.TestCase):
 
     def test_missing_value(self):
         lines = without("gridRows") + ["gridRows"]
-        with self.assertRaisesRegex(ParameterError, "line 11: expected 'name value'"):
+        with self.assertRaisesRegex(ParameterError, "line 12: expected 'name value'"):
             parse_parameters(lines)
 
     def test_too_many_values(self):
@@ -90,7 +91,7 @@ class TestFormat(unittest.TestCase):
             parse_parameters(VALID.splitlines() + ["gridrows 5"])
 
     def test_duplicate(self):
-        with self.assertRaisesRegex(ParameterError, "line 12: gridRows is given more than once"):
+        with self.assertRaisesRegex(ParameterError, "line 13: gridRows is given more than once"):
             parse_parameters(VALID.splitlines() + ["gridRows 5"])
 
     def test_missing_parameters_are_all_listed(self):
@@ -144,6 +145,19 @@ class TestValues(unittest.TestCase):
         for value in ("0", "-1", "big"):
             with self.subTest(value=value):
                 self.assert_rejected("initialRadius", value)
+
+    def test_final_radius(self):
+        self.assertEqual(parse_parameters(with_line("finalRadius", "0.5"))["finalRadius"], 0.5)
+        for value in ("0", "-1", "small"):
+            with self.subTest(value=value):
+                self.assert_rejected("finalRadius", value)
+
+    def test_final_radius_larger_than_initial(self):
+        with self.assertRaisesRegex(ParameterError, "must not be larger than initialRadius"):
+            parse_parameters(with_line("finalRadius", "12"))
+
+    def test_equal_radii_allowed(self):
+        self.assertEqual(parse_parameters(with_line("finalRadius", "10"))["finalRadius"], 10.0)
 
     def test_init_method(self):
         for value in ("random", "sample"):

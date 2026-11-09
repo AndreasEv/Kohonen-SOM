@@ -16,7 +16,7 @@ CODE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 REQUIRED_KEYS = {
     "gridRows", "gridCols", "numInputs", "maxIterations",
-    "initialLearningRate", "finalLearningRate", "initialRadius",
+    "initialLearningRate", "finalLearningRate", "initialRadius", "finalRadius",
     "randomSeed", "initMethod", "trainFile", "testFile",
 }
 

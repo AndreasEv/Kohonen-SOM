@@ -45,6 +45,7 @@ SCHEMA = {
     "initialLearningRate": (_parse_float, lambda v: 0 < v <= 1, "a number in (0, 1]"),
     "finalLearningRate":   (_parse_float, lambda v: 0 < v <= 1, "a number in (0, 1]"),
     "initialRadius":       (_parse_float, lambda v: v > 0, "a number > 0"),
+    "finalRadius":         (_parse_float, lambda v: v > 0, "a number > 0"),
     "randomSeed":          (_parse_int,   lambda v: v >= 0, "an integer >= 0"),
     "initMethod":          (_parse_str,   lambda v: v in ("random", "sample"),
                             "'random' or 'sample'"),
@@ -92,6 +93,10 @@ def parse_parameters(lines, source="parameters.txt"):
         raise ParameterError(
             f"{source}: finalLearningRate ({params['finalLearningRate']}) must not be "
             f"larger than initialLearningRate ({params['initialLearningRate']})")
+    if params["finalRadius"] > params["initialRadius"]:
+        raise ParameterError(
+            f"{source}: finalRadius ({params['finalRadius']}) must not be "
+            f"larger than initialRadius ({params['initialRadius']})")
     return params
 
 
