@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>EPL442 Assignment 3 - Kohonen SOM</title>
+<style>
+@page { size: A4; margin: 1.5cm 1.7cm; }
+body { font-family: "Liberation Serif", "Times New Roman", serif; font-size: 11pt; line-height: 1.13; margin: 0; }
+h1 { font-size: 13pt; margin: 0 0 2pt 0; }
+h2 { font-size: 12pt; margin: 7pt 0 2pt 0; }
+p  { margin: 2.5pt 0; text-align: justify; }
+table { border-collapse: collapse; margin: 4pt auto; font-size: 11pt; }
+th, td { border: 1px solid #888; padding: 1pt 4pt; text-align: center; }
+th { background: #eeeeee; }
+td.l, th.l { text-align: left; }
+.cap { font-size: 11pt; text-align: center; margin: 1pt 0 5pt 0; }
+.hdr { margin-bottom: 6pt; }
+.mono { font-family: "Liberation Mono", "Courier New", monospace; font-size: 11pt; }
+pre { font-family: "Liberation Mono", "Courier New", monospace; font-size: 11pt;
+      line-height: 1.1; margin: 3pt 0 3pt 6pt; }
+.f { font-style: italic; }
+.eq { text-align: center; margin: 3pt 0; }
+.fig { text-align: center; margin: 4pt 0 0 0; }
+.keep { break-inside: avoid; }
+</style>
+</head>
+<body>
+
+<h1>EPL 442 &ndash; Machine Learning &mdash; Assignment 3: Kohonen Self-Organizing Map</h1>
+<p class="hdr"><b>Name:</b> Andreas Evagorou &nbsp;&nbsp;&nbsp; <b>AM:</b> 1134609</p>
+
+<h2>1. Introduction</h2>
+<p>The data are the letters of Assignment 2: 20,000 images of the 26 capital letters, made by Frey
+and Slate (1991) from 20 distorted fonts and reduced to 16 integer features in 0&ndash;15 (box size
+and position, ink moments, edge counts). I keep the same split: the first 16,000 patterns for
+training, the last 4,000 for testing. The task is to group the letters with a Kohonen
+Self-Organizing Map (SOM) and measure how well the groups match the real letters.</p>
+<p>A SOM is a 2-D grid of neurons, each with a weight vector in the 16-D input space. For every
+input the closest neuron wins, and the winner and its neighbours <i>on the grid</i> move towards
+the input. Over many passes the grid folds into the data, so neighbouring neurons respond to
+similar inputs: the 16-D data are drawn as a 2-D map that keeps their topology.</p>
+<p>Unlike back propagation in Assignments 1 and 2, there is no teacher: no target, no error to
+descend. The letter is never seen in training; it is used only afterwards to name each neuron and
+to score the test set. A good score therefore means the letters really form separate groups in
+feature space.</p>
+
+<h2>2. Solution design and reasoning</h2>
+<p><b>Grid.</b> A square 20&times;20 grid (400 neurons) gives about 15 neurons per letter, enough
+for each letter to split into sub-groups for its fonts, while each neuron still sees about 40 of
+the 16,000 patterns. 10&times;10 (4 per letter) seemed too coarse; Section 4 compares 10&times;10,
+15&times;15 and 20&times;20. I chose a square topology because the grid distance is then the plain
+Euclidean distance between (row, column) positions, as in the lecture's neighbourhood formula.</p>
+<p><b>Normalisation.</b> Each feature is min-max scaled to [0, 1],
+<span class="f">x&prime; = (x &minus; min)/(max &minus; min)</span>, with min and max from the
+<i>training set only</i>; the test set uses the same values and is clipped to [0, 1] (feature 16
+is never below 1 in training but is 0 in some test patterns). The Euclidean distance is the whole
+algorithm, so every feature should have the same range and the same say in choosing the winner.</p>
+<p><b>Initialisation.</b> I implemented the lecture's random weights ("random": uniform in
+[0, 1)) and "sample", where each neuron starts as a random training pattern; both use the seed
+<span class="mono">randomSeed</span>. I chose "sample" because the data fill only a small part of
+the 16-D cube: before training the quantization error is 0.26 with "sample" against 0.83 with
+"random".</p>
+<p><b>Algorithm.</b> One epoch presents every training pattern once, in a new random order:</p>
+<pre>normalise data; initialise weights (seeded)
+for t = 0 .. T-1:                 # T = maxIterations
+    eta, sigma = eta(t), sigma(t)
+    for x in shuffled training set:
+        c = winner of x           # smallest ||x - w_j||
+        for every neuron j:
+            w_j += eta * h_cj * (x - w_j)
+    QE on training and test set
+label neurons; test accuracy</pre>
+<p><b>Formulas</b> (lecture L6). Winner: smallest
+<span class="f">d<sub>j</sub> = &Sigma;<sub>i</sub>(x<sub>i</sub> &minus; w<sub>ij</sub>)&sup2;</span>.
+Gaussian neighbourhood: <span class="f">h<sub>cj</sub>(t) = exp(&minus;&#8214;r<sub>c</sub> &minus;
+r<sub>j</sub>&#8214;&sup2; / 2&sigma;&sup2;(t))</span>, with <span class="f">r</span> the grid
+position; I preferred it to the bubble function because it fades smoothly instead of cutting off.
+Update after every pattern: <span class="f">w<sub>ij</sub>(t+1) = w<sub>ij</sub>(t) + &eta;(t)
+h<sub>cj</sub>(t)[x<sub>i</sub> &minus; w<sub>ij</sub>(t)]</span>. Error (quantization error):
+<span class="f">QE = (1/N) &Sigma;<sub>p</sub> &#8214;x<sub>p</sub> &minus;
+w<sub>c(p)</sub>&#8214;</span>, on both sets after every epoch.</p>
+<p><b>Decay of &eta; and &sigma;.</b> The lecture decays the radius exponentially,
+<span class="f">&sigma;(t) = &sigma;<sub>0</sub> exp(&minus;t/&tau;)</span>, but the learning
+rate linearly, <span class="f">&eta;(t) = &eta;(0)(1 &minus; t/T)</span>. I decay both
+exponentially between an initial and a final value:</p>
+<p class="eq f">&eta;(t) = &eta;<sub>0</sub>(&eta;<sub>T</sub>/&eta;<sub>0</sub>)<sup>t/(T&minus;1)</sup>,
+&nbsp; &sigma;(t) = &sigma;<sub>0</sub>(&sigma;<sub>T</sub>/&sigma;<sub>0</sub>)<sup>t/(T&minus;1)</sup></p>
+<p>This is the lecture's <span class="f">exp(&minus;t/&tau;)</span> with
+<span class="f">&tau; = (T&minus;1)/ln(&sigma;<sub>0</sub>/&sigma;<sub>T</sub>)</span>, so the
+last epoch uses exactly the final value. The lecture splits training into a clustering stage with
+a large &eta; and a fine-tuning stage with a small one. With exponential decay &eta; falls below
+0.1 after 41 of 100 epochs, leaving most of the run for fine tuning; the linear form stays above
+0.1 until epoch 80, and it reaches &eta; = 0 at t = T, so the last epoch would learn nothing.
+Decaying both on the same schedule also keeps the neighbourhood from staying wide while the steps
+are already tiny. Figure 1 matches this: the error is noisy until about epoch 40, smooth after.</p>
+<p><b>Labels.</b> After training each neuron gets the most frequent letter among the training
+patterns it wins (ties: alphabetically first); a neuron with no patterns gets &ldquo;&ndash;&rdquo;.
+A test pattern is correct if its winner has its letter, so landing on &ldquo;&ndash;&rdquo; is wrong.</p>
+<p><b>Difficulties.</b> The assignment's parameter file has only an initial radius, and my first
+version decayed &sigma; to 1. With a Gaussian, &sigma; = 1 still moves the winner's direct
+neighbours by e<sup>&minus;0.5</sup> &asymp; 0.61 of its step, so every neuron stayed an average
+of its neighbourhood: 55.8% accuracy and a final QE (0.281) worse than the untrained map. I added
+the parameter <span class="mono">finalRadius</span> = 0.5 (neighbour weight e<sup>&minus;2</sup>
+&asymp; 0.14), which raised accuracy to 67.65%, and <span class="mono">initMethod</span>
+(sample | random). Speed was the other problem: each pattern updates all 400 neurons, so the update
+is vectorised with numpy (about 1.3 s per epoch) and the experiments run four at a time.</p>
+
+<h2>3. Implementation</h2>
+<p>Python 3 with numpy (matplotlib only for plots), one file per role:
+<span class="mono">parameters.py</span> (reads <span class="mono">parameters.txt</span> from the
+current folder), <span class="mono">data.py</span> (loading, normalisation),
+<span class="mono">som.py</span> (grid, initialisation, winner, neighbourhood, update, decay, QE),
+<span class="mono">training.py</span> (epochs), <span class="mono">clustering.py</span> (labels,
+accuracy), <span class="mono">results.py</span> (output files), <span class="mono">plots.py</span>,
+<span class="mono">experiments.py</span> and <span class="mono">main.py</span>. Over 160 unit tests
+check each formula against hand-computed values. On a synthetic set of four tight Gaussian clusters
+on a 5&times;5 map, 25 epochs bring the QE from 0.25 to 0.022, each cluster gets its own neurons
+near its centre, and the test accuracy is 100%. Scrambling the training letters leaves the weights
+and <span class="mono">results.txt</span> identical, so the labels are never used in training.</p>
+
+<h2>4. Experiments and results</h2>
+<p>Table 1 fixes the baseline so it can be reproduced. Figure 1 plots
+<span class="mono">results.txt</span>, since the QE is what the SOM reduces and training and test
+side by side show whether the map generalises. Figure 2 draws <span class="mono">clustering.txt</span>
+as the grid, so neighbouring letters can be read directly. Figure 3 splits the test accuracy by
+letter, because one overall number hides which letters fail. Tables 2 and 3 change one setting at a
+time and repeat the baseline with five seeds, to separate real effects from noise.</p>
+
+<table>
+<tr><th class="l">Parameter</th><th>Value</th><th class="l">Parameter</th><th>Value</th></tr>
+<tr><td class="l">Grid (rows &times; cols)</td><td>20 &times; 20, square</td><td class="l">Radius &sigma; (initial &rarr; final)</td><td>10 &rarr; 0.5</td></tr>
+<tr><td class="l">numInputs</td><td>16</td><td class="l">Decay of &eta; and &sigma;</td><td>exponential</td></tr>
+<tr><td class="l">Epochs (maxIterations)</td><td>100</td><td class="l">initMethod</td><td>sample</td></tr>
+<tr><td class="l">Learning rate &eta; (initial &rarr; final)</td><td>0.5 &rarr; 0.01</td><td class="l">randomSeed</td><td>42</td></tr>
+</table>
+<p class="cap"><b>Table 1.</b> Baseline parameters (code/parameters.txt), Gaussian neighbourhood.</p>
+
+<p>The baseline (about 2&frac14; minutes) ends with training QE 0.2253, testing QE 0.2346 and a
+<b>test clustering accuracy of 67.65%</b> (2,706/4,000); on the training set the same labels give
+70.3%. 390 of the 400 neurons get a letter, 10 win no pattern.</p>
+
+<div class="fig keep"><img src="code/plots/error_curve.png" style="width:10.5cm"></div>
+<p class="cap"><b>Figure 1.</b> Quantization error per epoch, training and test set (results.txt).</p>
+
+<p>In Figure 1 the QE first <i>rises</i>, from 0.26 to 0.53 by epoch 2: with &sigma; = 10 almost
+the whole map moves with every winner, so the neurons are pulled towards the mean of the data while
+the map orders itself. It is jagged while &eta; &gt; 0.1 (until about epoch 40), then falls
+smoothly to 0.2253 and has not levelled off at epoch 100. The two curves stay within 0.01 of each
+other, so unseen letters are represented as well as the training ones.</p>
+
+<div class="fig keep"><img src="code/plots/letter_map.png" style="width:12.3cm"></div>
+<p class="cap"><b>Figure 2.</b> Letter of each neuron (clustering.txt). Shade = purity, the share of
+the neuron's training patterns with its letter; grey &ndash; = no patterns.</p>
+
+<div class="fig keep"><img src="code/plots/letter_accuracy.png" style="width:12.8cm"></div>
+<p class="cap"><b>Figure 3.</b> Test-set clustering accuracy per letter (sorted) and overall.</p>
+
+<p>Per letter (Figure 3) the accuracy goes from 92.8% (W), 86.0% (L) and 85.9% (A) down to 48.7%
+(E), 46.0% (S) and 21.2% (H); 16 of the 26 letters are above the overall rate.</p>
+
+<table class="keep">
+<tr><th class="l">Change from baseline</th><th>Train QE</th><th>Test QE</th><th>Test acc. %</th><th>Empty</th></tr>
+<tr><td class="l"><b>None (baseline)</b></td><td>0.2253</td><td>0.2346</td><td><b>67.65</b></td><td>10</td></tr>
+<tr><td class="l">Grid 10&times;10</td><td>0.2982</td><td>0.3029</td><td>46.60</td><td>0</td></tr>
+<tr><td class="l">Grid 15&times;15</td><td>0.2532</td><td>0.2600</td><td>58.93</td><td>3</td></tr>
+<tr><td class="l">&eta;: 0.1 &rarr; 0.01</td><td>0.2255</td><td>0.2343</td><td>66.85</td><td>10</td></tr>
+<tr><td class="l">&sigma;: 10 &rarr; 1</td><td>0.2806</td><td>0.2841</td><td>55.80</td><td>6</td></tr>
+<tr><td class="l">&sigma;: 5 &rarr; 0.5</td><td>0.2244</td><td>0.2340</td><td>66.72</td><td>9</td></tr>
+<tr><td class="l">Random initialisation</td><td>0.2248</td><td>0.2333</td><td>66.95</td><td>8</td></tr>
+</table>
+<p class="cap"><b>Table 2.</b> Parameter comparisons (100 epochs, seed 42). Empty = neurons without
+patterns. Full output: code/experiments/summary.txt.</p>
+
+<table class="keep">
+<tr><th class="l">Seed</th><th>42</th><th>1</th><th>2</th><th>3</th><th>4</th><th>Mean &plusmn; std</th></tr>
+<tr><td class="l">Train QE</td><td>0.2253</td><td>0.2256</td><td>0.2260</td><td>0.2253</td><td>0.2253</td><td>0.2255 &plusmn; 0.0003</td></tr>
+<tr><td class="l">Test QE</td><td>0.2346</td><td>0.2339</td><td>0.2350</td><td>0.2337</td><td>0.2347</td><td>0.2344 &plusmn; 0.0005</td></tr>
+<tr><td class="l">Test acc. %</td><td>67.65</td><td>67.25</td><td>66.72</td><td>66.38</td><td>67.12</td><td><b>67.03 &plusmn; 0.49</b></td></tr>
+</table>
+<p class="cap"><b>Table 3.</b> The baseline with five seeds (sample standard deviation).</p>
+
+<h2>5. Analysis and discussion</h2>
+<p><b>The map.</b> Figure 2 has clear regions whose neighbours make sense by shape: a W block on
+the right with M and N beside it (wide letters, many vertical strokes); P, F and T along the top
+(ink at the top), with Y and V next to T; the round O, Q, G and C in the bottom middle; the narrow
+L, I and J on the left next to the A block. The commonest test errors follow these neighbourhoods:
+H&rarr;N (31), S&rarr;Z (30), R&rarr;B (26), H&rarr;K (25), G&rarr;O (22) and T&harr;Y (22/21),
+letters whose features really overlap. The SOM never sees labels, so it has no reason to draw a
+border between them. H is the extreme case: its 12 neurons are scattered over the map rather than
+forming a region, so it reaches only 21.2%.</p>
+<p><b>Empty neurons.</b> 8 of the 10 lie on the left edge between regions (e.g. between the L
+column and the A block), where the grid stretches across a gap in feature space. They mark
+separation between groups rather than a fault; only one test pattern landed on one.</p>
+<p><b>Parameters.</b> Grid size matters most: 46.6%, 58.9% and 67.7% for 10&times;10, 15&times;15
+and 20&times;20, since 100 neurons cannot hold 20 fonts of 26 letters. Next is the final radius:
+ending at &sigma; = 1 costs twelve points (Section 2), while the initial radius, the initial
+&eta; and the initialisation each change the result by under one point, inside the seed spread of
+Table 3 (66.4&ndash;67.7%). Whatever the start, the wide early neighbourhood pulls the map into the
+data (in epoch 1 the QE drops from 0.83 to 0.50 with random weights and rises from 0.26 to 0.51
+with samples), and every run ends with the same fine tuning at &eta; = 0.01.</p>
+<p><b>What I would change.</b> Accuracy is still rising with grid size and Figure 1 is still
+falling at epoch 100, and training (70.3%) and test (67.65%) accuracy are close, so I would try a
+larger map (25&times;25 or 30&times;30) and more epochs, then a hexagonal grid. For reference, the
+supervised network of Assignment 2 reached 84.2% on the same split.</p>
+
+<h2>6. Conclusions</h2>
+<p>A 20&times;20 SOM trained without labels puts 67.65% of unseen letters on a neuron of their own
+letter (67.03 &plusmn; 0.49% over five seeds) and places similar shapes next to each other. The end
+of training matters more than the start (final radius and map size dominate), the error can rise
+during the ordering stage without anything being wrong, and the SOM's mistakes are the letters
+whose shapes really overlap.</p>
+
+<h2>7. Declaration of AI tool use</h2>
+<p>I used an AI assistant (Claude) to help write and test the code, run the experiments and word this
+report. The design choices are mine, every number comes from the submitted code, and I can explain
+all of it.</p>
+
+</body>
+</html>

@@ -227,7 +227,7 @@ def plot_letter_accuracy(per_letter, path, overall=None):
 
     plt = _pyplot()
     fig, ax = plt.subplots(figsize=(max(4.0, 0.27 * len(order) + 1.5), 3.6))
-    ax.bar(range(len(order)), values, width=0.72, color=BAR_COLOUR)
+    ax.bar(range(len(order)), values, width=0.72, color=BAR_COLOUR, label="Accuracy of the letter")
     ax.set_xticks(range(len(order)))
     ax.set_xticklabels(order)
     ax.set_xlim(-0.6, len(order) - 0.4)
@@ -237,9 +237,9 @@ def plot_letter_accuracy(per_letter, path, overall=None):
     _style(ax)
     ax.grid(False, axis="x")
     if overall is not None:
-        ax.axhline(100 * overall, color=INK, linewidth=1, linestyle="--")
-        ax.text(len(order) - 0.4, 100 * overall + 1.5, f"overall {100 * overall:.1f}%",
-                ha="right", va="bottom", fontsize=8, color=INK)
+        ax.axhline(100 * overall, color=INK, linewidth=1, linestyle="--",
+                   label=f"Overall accuracy ({100 * overall:.1f}%)")
+    ax.legend(loc="upper right", frameon=False, fontsize="small")
     ax.set_title("Test-set clustering accuracy per letter", color=INK)
     return _save(fig, path)
 
