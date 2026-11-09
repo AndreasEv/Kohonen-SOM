@@ -14,7 +14,10 @@ code/
   som.py           SOM grid, weight initialization, winner (BMU) search,
                    neighbourhood, weight update, decay, quantization error
   training.py      training loop (epochs in random order, errors per epoch)
+  clustering.py    neuron letters (majority vote of training patterns) and
+                   test-set clustering accuracy, overall and per letter
   results.py       writes results.txt (epoch, training error, testing error)
+                   and clustering.txt (row, col, letter, patterns, hits)
   training.txt     Assignment 2 training set (16000 patterns)
   test.txt         Assignment 2 test set (4000 patterns)
   tests/           unit tests (standard-library unittest)
@@ -27,8 +30,9 @@ cd code
 python3 main.py
 ```
 
-Prints one progress line per epoch and the final training/testing error,
-and writes `results.txt` in the same folder. With the sample parameters
+Prints one progress line per epoch, then the final training/testing error
+and the clustering accuracy on the test set (overall and per letter). Writes
+`results.txt` and `clustering.txt` in the same folder. With the sample parameters
 (20x20, 100 epochs) a run takes about 2.5 minutes.
 
 ## Tests

@@ -193,7 +193,7 @@ class TestProgram(unittest.TestCase):
                         "initialLearningRate 0.5\nfinalLearningRate 0.05\n"
                         "initialRadius 2\nfinalRadius 0.5\nrandomSeed 7\n"
                         "initMethod sample\ntrainFile tr.txt\ntestFile te.txt\n")
-            _, _, history = main.run(folder, verbose=False)
+            _, _, history, _, _ = main.run(folder, verbose=False)
             table = np.loadtxt(os.path.join(folder, "results.txt"))
         self.assertEqual(table.shape, (8, 3))
         np.testing.assert_array_equal(table[:, 0], np.arange(1, 9))

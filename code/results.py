@@ -10,9 +10,19 @@ where the epoch counter starts at 1 and both errors are the quantization
 error (mean distance of each pattern to its winning neuron) at the end of
 that epoch. Example line:  1 0.512345 0.514321
 The file can be read back with numpy.loadtxt for the plots.
+
+clustering.txt has one line per neuron, in neuron order (row by row), with
+five space-separated columns:
+    row  col  letter  patterns  hits
+row and col are the neuron's grid position counted from 0, letter is the
+label it got after training ("–" if no training pattern maps to it),
+patterns is how many training patterns it wins and hits how many of those
+have its letter (hits / patterns is the neuron's purity). Example line:
+    3 7 A 41 35
 """
 
 RESULTS_FILE = "results.txt"
+CLUSTERING_FILE = "clustering.txt"
 
 
 def format_results(history):
@@ -24,4 +34,21 @@ def write_results(path, history):
     """Write the training history to `path` in the results.txt format."""
     with open(path, "w", encoding="utf-8") as f:
         for line in format_results(history):
+            f.write(line + "\n")
+
+
+def format_clustering(som, labelling):
+    """Lines of clustering.txt (without newlines): one per neuron of `som`."""
+    lines = []
+    for j in range(som.num_neurons):
+        row, col = som.position(j)
+        lines.append(f"{row} {col} {labelling.labels[j]} "
+                     f"{labelling.patterns[j]} {labelling.hits[j]}")
+    return lines
+
+
+def write_clustering(path, som, labelling):
+    """Write the neuron labels to `path` in the clustering.txt format (UTF-8)."""
+    with open(path, "w", encoding="utf-8") as f:
+        for line in format_clustering(som, labelling):
             f.write(line + "\n")
