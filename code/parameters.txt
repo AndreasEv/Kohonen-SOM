@@ -1,0 +1,10 @@
+gridRows 20
+gridCols 20
+numInputs 16
+maxIterations 100
+initialLearningRate 0.5
+finalLearningRate 0.01
+initialRadius 10
+randomSeed 42
+trainFile training.txt
+testFile test.txt
